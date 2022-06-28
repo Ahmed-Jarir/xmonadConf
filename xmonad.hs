@@ -8,12 +8,20 @@
 --
 
 import XMonad
+import System.IO
 import Data.Monoid
 import System.Exit
+import XMonad.Hooks.DynamicLog (dynamicLogWithPP, wrap, xmobarPP, xmobarColor, shorten, PP(..))
+import XMonad.Util.Run
+import XMonad.Util.SpawnOnce
+import XMonad.Hooks.ManageDocks
+import XMonad.Layout.Fullscreen
+import XMonad.Hooks.EwmhDesktops
+import XMonad.Hooks.ManageHelpers
 import Graphics.X11.ExtraTypes.XF86
 
-import qualified XMonad.StackSet as W
 import qualified Data.Map        as M
+import qualified XMonad.StackSet as W
 
 -- The preferred terminal program, which is used in a binding below and by
 -- certain contrib modules.
@@ -206,7 +214,7 @@ myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
 -- The available layouts.  Note that each layout is separated by |||,
 -- which denotes layout choice.
 --
-myLayout = tiled ||| Mirror tiled ||| Full
+myLayout = avoidStruts (tiled ||| Mirror tiled ||| Full)
   where
      -- default tiling algorithm partitions the screen into two panes
      tiled   = Tall nmaster delta ratio
@@ -237,6 +245,7 @@ myLayout = tiled ||| Mirror tiled ||| Full
 --
 myManageHook = composeAll
     [ className =? "MPlayer"        --> doFloat
+    , className =? "Xmessage"  --> doCenterFloat
     , className =? "Gimp"           --> doFloat
     , resource  =? "desktop_window" --> doIgnore
     , resource  =? "kdesktop"       --> doIgnore ]
@@ -258,7 +267,7 @@ myEventHook = mempty
 -- Perform an arbitrary action on each internal state change or X event.
 -- See the 'XMonad.Hooks.DynamicLog' extension for examples.
 --
-myLogHook = return ()
+--myLogHook = return() 
 
 ------------------------------------------------------------------------
 -- Startup hook
@@ -268,14 +277,55 @@ myLogHook = return ()
 -- per-workspace layout choices.
 --
 -- By default, do nothing.
-myStartupHook = return ()
+myStartupHook = do
+    spawnOnce "nitrogen --restore &"
+    spawnOnce "comton &"
+    spawnOnce "blueman-applet &"
 
 ------------------------------------------------------------------------
 -- Now run xmonad with all the defaults we set up.
 
 -- Run xmonad with the settings you specify. No need to modify this.
 --
-main = xmonad defaults
+--
+myLogHook :: Handle -> X ()
+myLogHook h = dynamicLogWithPP $ def { ppOutput = hPutStrLn h }
+
+main = do 
+    xmproc <- spawnPipeWithUtf8Encoding "xmobar -x 0 /home/ahmed/.xmonad/xmobar.config"
+    --xmonad defaults
+
+    xmonad $ fullscreenSupport $ ewmh $ docks $ defaults {
+        logHook = dynamicLogWithPP $ namedScratchpadFilterOutWorkspacePP $ xmobarPP
+        { ppOutput = \x -> hPutStrLn xmproc x   -- xmobar on monitor 1
+            , ppCurrent = xmobarColor color06 "" . wrap
+                          ("<box type=Bottom width=2 mb=2 color=" ++ color06 ++ ">") "</box>"
+              -- Visible but not current workspace
+            , ppVisible = xmobarColor color06 "" . clickable
+              -- Hidden workspace
+            , ppHidden = xmobarColor color05 "" . wrap
+                         ("<box type=Top width=2 mt=2 color=" ++ color05 ++ ">") "</box>" . clickable
+              -- Hidden workspaces (no windows)
+            , ppHiddenNoWindows = xmobarColor color05 ""  . clickable
+              -- Title of active window
+            , ppTitle = xmobarColor color16 "" . shorten 60
+              -- Separator character
+            , ppSep =  "<fc=" ++ color09 ++ "> <fn=1>|</fn> </fc>"
+              -- Urgent workspace
+            , ppUrgent = xmobarColor color02 "" . wrap "!" "!"
+              -- Adding # of windows on current workspace to the bar
+            , ppExtras  = [windowCount]
+              -- order of things in xmobar
+            , ppOrder  = \(ws:l:t:ex) -> [ws,l]++ex++[t]
+        }
+
+ 
+    }
+
+
+    
+
+
 
 -- A structure containing your configuration settings, overriding
 -- fields in the default config. Any you don't override, will
@@ -302,7 +352,7 @@ defaults = def {
         layoutHook         = myLayout,
         manageHook         = myManageHook,
         handleEventHook    = myEventHook,
-        logHook            = myLogHook,
+        logHook            = return(),
         startupHook        = myStartupHook
     }
 
