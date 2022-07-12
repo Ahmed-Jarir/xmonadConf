@@ -9,23 +9,35 @@
 
 import XMonad
 import System.IO
-import Data.Monoid
 import System.Exit
-import XMonad.Hooks.DynamicLog (dynamicLogWithPP, wrap, xmobarPP, xmobarColor, shorten, PP(..))
 import XMonad.Util.Run
 import XMonad.Util.SpawnOnce
-import XMonad.Hooks.ManageDocks
+import Codec.Binary.UTF8.String
 import XMonad.Layout.Fullscreen
-import XMonad.Hooks.EwmhDesktops
-import XMonad.Hooks.ManageHelpers
+import XMonad.Util.NamedScratchpad
 import Graphics.X11.ExtraTypes.XF86
 
 import qualified Data.Map        as M
 import qualified XMonad.StackSet as W
 
+--hooks
+import XMonad.Hooks.StatusBar
+import XMonad.Hooks.ManageDocks
+import XMonad.Hooks.EwmhDesktops
+import XMonad.Hooks.StatusBar.PP
+import XMonad.Hooks.ManageHelpers
+import XMonad.Hooks.DynamicLog (dynamicLogWithPP, wrap, xmobarPP, xmobarColor, shorten, PP(..))
+--end hooks
+
+--Data
+import Data.Monoid
+import Data.Maybe (fromJust)
+--end Data
+
 -- The preferred terminal program, which is used in a binding below and by
 -- certain contrib modules.
 --
+
 myTerminal      = "kitty"
 
 -- Whether focus follows the mouse pointer.
@@ -56,8 +68,11 @@ myModMask       = mod4Mask
 --
 -- > workspaces = ["web", "irc", "code" ] ++ map show [4..9]
 --
-myWorkspaces    = ["1","2","3","4","5","6","7","8","9"]
+myWorkspaces    = ["DEV","NET","UNI","DOC","GDV","VRM","CHT","MUS","VID"]
+myWorkspaceIndices = M.fromList $ zipWith (,) myWorkspaces [1..]
 
+clickable ws = "<action=xdotool key super+"++show i++">"++ws++"</action>"
+    where i = fromJust $ M.lookup ws myWorkspaceIndices
 -- Border colors for unfocused and focused windows, respectively.
 --
 myNormalBorderColor  = "#dddddd"
@@ -279,8 +294,8 @@ myEventHook = mempty
 -- By default, do nothing.
 myStartupHook = do
     spawnOnce "nitrogen --restore &"
-    spawnOnce "comton &"
     spawnOnce "blueman-applet &"
+    spawnOnce "compton &"
 
 ------------------------------------------------------------------------
 -- Now run xmonad with all the defaults we set up.
@@ -289,34 +304,31 @@ myStartupHook = do
 --
 --
 myLogHook :: Handle -> X ()
-myLogHook h = dynamicLogWithPP $ def { ppOutput = hPutStrLn h }
+myLogHook h = dynamicLogWithPP $ def  { ppOutput = hPutStrLn h }
 
 main = do 
-    xmproc <- spawnPipeWithUtf8Encoding "xmobar -x 0 /home/ahmed/.xmonad/xmobar.config"
+
+    xmproc <- spawnPipeWithLocaleEncoding "xmobar /home/ahmed/.xmonad/xmobar.config"
+    xmprocBottom <- spawnPipeWithLocaleEncoding "xmobar /home/ahmed/.xmonad/xmobarBottom.config"
     --xmonad defaults
 
     xmonad $ fullscreenSupport $ ewmh $ docks $ defaults {
-        logHook = dynamicLogWithPP $ namedScratchpadFilterOutWorkspacePP $ xmobarPP
+        logHook = dynamicLogWithPP $ xmobarPP
         { ppOutput = \x -> hPutStrLn xmproc x   -- xmobar on monitor 1
-            , ppCurrent = xmobarColor color06 "" . wrap
-                          ("<box type=Bottom width=2 mb=2 color=" ++ color06 ++ ">") "</box>"
+            , ppCurrent = xmobarColor "#EC994B" "" . wrap "<"">" 
+            , ppVisible = xmobarColor "#73777B" "" . clickable
+            , ppHidden = xmobarColor  "#73777B" "" . clickable
+            , ppHiddenNoWindows = xmobarColor "#F1EEE9" "" . clickable
+            , ppUrgent = xmobarColor "#C4001D" "" . wrap "!""!"
               -- Visible but not current workspace
-            , ppVisible = xmobarColor color06 "" . clickable
               -- Hidden workspace
-            , ppHidden = xmobarColor color05 "" . wrap
-                         ("<box type=Top width=2 mt=2 color=" ++ color05 ++ ">") "</box>" . clickable
               -- Hidden workspaces (no windows)
-            , ppHiddenNoWindows = xmobarColor color05 ""  . clickable
               -- Title of active window
-            , ppTitle = xmobarColor color16 "" . shorten 60
               -- Separator character
-            , ppSep =  "<fc=" ++ color09 ++ "> <fn=1>|</fn> </fc>"
+            , ppSep =  "<fn=1> | </fn>"
               -- Urgent workspace
-            , ppUrgent = xmobarColor color02 "" . wrap "!" "!"
-              -- Adding # of windows on current workspace to the bar
-            , ppExtras  = [windowCount]
               -- order of things in xmobar
-            , ppOrder  = \(ws:l:t:ex) -> [ws,l]++ex++[t]
+             , ppOrder  = \(ws:l:t:ex) -> [ws,l]++ex++[t]
         }
 
  
