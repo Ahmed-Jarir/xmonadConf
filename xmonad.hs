@@ -295,6 +295,7 @@ myEventHook = mempty
 myStartupHook = do
     spawnOnce "nitrogen --restore &"
     spawnOnce "blueman-applet &"
+    spawnOnce "notify-osd &"
     spawnOnce "compton &"
 
 ------------------------------------------------------------------------
