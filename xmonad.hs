@@ -68,7 +68,7 @@ myModMask       = mod4Mask
 --
 -- > workspaces = ["web", "irc", "code" ] ++ map show [4..9]
 --
-myWorkspaces    = ["DEV","NET","UNI","DOC","GDV","VRM","CHT","MUS","VID"]
+myWorkspaces    = ["1: DEV","2: NET","3: UNI","4: DOC","5: GDV","6: VRM","7: CHT","8: MUS","9: VID"]
 myWorkspaceIndices = M.fromList $ zipWith (,) myWorkspaces [1..]
 
 clickable ws = "<action=xdotool key super+"++show i++">"++ws++"</action>"
@@ -165,19 +165,20 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
 
     --media keys
     --play
-    ,((0               , xF86XK_AudioPlay), spawn "media p")
+    , ((0               , xF86XK_AudioPlay), spawn "media p")
     --pause
-    ,((0               , xF86XK_AudioStop), spawn "media p")
+    , ((0               , xF86XK_AudioStop), spawn "media p")
     --next
-    ,((0               , xF86XK_AudioNext), spawn "media n")
+    , ((0               , xF86XK_AudioNext), spawn "media n")
     --previous
-    ,((0               , xF86XK_AudioPrev), spawn "media b")
+    , ((0               , xF86XK_AudioPrev), spawn "media b")
 
+    --brightnesskeys
 
 
 
     -- Run xmessage with a summary of the default keybindings (useful for beginners)
-    , ((modm .|. shiftMask, xK_slash ), spawn ("echo \"" ++ help ++ "\" | xmessage -file -"))
+    , ((modm .|. shiftMask, xK_slash ), spawn ("echo \"" ++ help ++ "\" | gxmessage -file -"))
     ]
     ++
 
@@ -260,7 +261,7 @@ myLayout = avoidStruts (tiled ||| Mirror tiled ||| Full)
 --
 myManageHook = composeAll
     [ className =? "MPlayer"        --> doFloat
-    , className =? "Xmessage"  --> doCenterFloat
+    , className =? "Gxmessage"  --> doCenterFloat
     , className =? "Gimp"           --> doFloat
     , resource  =? "desktop_window" --> doIgnore
     , resource  =? "kdesktop"       --> doIgnore ]
